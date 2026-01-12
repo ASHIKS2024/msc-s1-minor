@@ -1,4 +1,3 @@
-// ========== src/components/Tasks/TaskForm.js (UPDATED - No Admin Assignment) ==========
 import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import { X } from 'lucide-react';
@@ -16,7 +15,6 @@ function TaskForm({ projectId, sprintId, onClose, onSuccess }) {
     assigned_to: '',
   });
   const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -25,9 +23,7 @@ function TaskForm({ projectId, sprintId, onClose, onSuccess }) {
   const fetchUsers = async () => {
     try {
       const response = await api.get('/auth/users/');
-      // Filter out admin users (is_staff = true)
-      const nonAdminUsers = response.data.filter(user => !user.is_staff);
-      setUsers(nonAdminUsers);
+      setUsers(response.data);
     } catch (error) {
       console.error('Error fetching users:', error);
     }
@@ -35,8 +31,6 @@ function TaskForm({ projectId, sprintId, onClose, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    
     try {
       await api.post('/tasks/', {
         ...formData,
@@ -45,9 +39,6 @@ function TaskForm({ projectId, sprintId, onClose, onSuccess }) {
       onSuccess();
     } catch (error) {
       console.error('Error creating task:', error);
-      alert('Failed to create task. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -61,97 +52,63 @@ function TaskForm({ projectId, sprintId, onClose, onSuccess }) {
           </button>
         </div>
         <form onSubmit={handleSubmit} style={styles.form}>
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Task Title *</label>
-            <input
-              type="text"
-              placeholder="Task Title"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              style={styles.input}
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Description *</label>
-            <textarea
-              placeholder="Description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              style={{...styles.input, minHeight: '100px'}}
-              required
-              disabled={loading}
-            />
-          </div>
-
+          <input
+            type="text"
+            placeholder="Task Title"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            style={styles.input}
+            required
+          />
+          <textarea
+            placeholder="Description"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            style={{...styles.input, minHeight: '100px'}}
+            required
+          />
           <div style={styles.grid}>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Priority</label>
-              <select
-                value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                style={styles.input}
-                disabled={loading}
-              >
-                <option value="low">Low Priority</option>
-                <option value="medium">Medium Priority</option>
-                <option value="high">High Priority</option>
-                <option value="critical">Critical</option>
-              </select>
-            </div>
-            <div style={styles.formGroup}>
-              <label style={styles.label}>Story Points</label>
-              <input
-                type="number"
-                placeholder="Story Points"
-                value={formData.story_points}
-                onChange={(e) => setFormData({ ...formData, story_points: parseInt(e.target.value) })}
-                style={styles.input}
-                min="1"
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Assign To</label>
             <select
-              value={formData.assigned_to}
-              onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+              value={formData.priority}
+              onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
               style={styles.input}
-              disabled={loading}
             >
-              <option value="">Unassigned</option>
-              {users.map(user => (
-                <option key={user.id} value={user.id}>
-                  {user.username} - {user.role}
-                </option>
-              ))}
+              <option value="low">Low Priority</option>
+              <option value="medium">Medium Priority</option>
+              <option value="high">High Priority</option>
+              <option value="critical">Critical</option>
             </select>
-            {users.length === 0 && (
-              <div style={styles.helpText}>No non-admin users available</div>
-            )}
-          </div>
-
-          <div style={styles.formGroup}>
-            <label style={styles.label}>Due Date</label>
             <input
-              type="date"
-              value={formData.due_date}
-              onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+              type="number"
+              placeholder="Story Points"
+              value={formData.story_points}
+              onChange={(e) => setFormData({ ...formData, story_points: parseInt(e.target.value) })}
               style={styles.input}
-              disabled={loading}
+              min="1"
             />
           </div>
-
+          <select
+            value={formData.assigned_to}
+            onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
+            style={styles.input}
+          >
+            <option value="">Unassigned</option>
+            {users.map(user => (
+              <option key={user.id} value={user.id}>{user.username}</option>
+            ))}
+          </select>
+          <input
+            type="date"
+            value={formData.due_date}
+            onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
+            style={styles.input}
+          />
           <div style={styles.actions}>
-            <button type="button" onClick={onClose} style={styles.cancelBtn} disabled={loading}>
+            <button type="button" onClick={onClose} style={styles.cancelBtn}>
               Cancel
             </button>
-            <button type="submit" style={styles.submitBtn} disabled={loading}>
-              {loading ? 'Creating...' : 'Create Task'}
+            <button type="submit" style={styles.submitBtn}>
+              Create Task
             </button>
           </div>
         </form>
@@ -178,8 +135,6 @@ const styles = {
     borderRadius: '12px',
     width: '90%',
     maxWidth: '600px',
-    maxHeight: '90vh',
-    overflow: 'auto',
   },
   header: {
     display: 'flex',
@@ -198,17 +153,7 @@ const styles = {
     padding: '20px',
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
-  },
-  formGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-  },
-  label: {
-    fontSize: '14px',
-    fontWeight: '500',
-    color: '#333',
+    gap: '15px',
   },
   input: {
     padding: '12px',
@@ -220,11 +165,6 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: '2fr 1fr',
     gap: '15px',
-  },
-  helpText: {
-    fontSize: '12px',
-    color: '#999',
-    marginTop: '4px',
   },
   actions: {
     display: 'flex',

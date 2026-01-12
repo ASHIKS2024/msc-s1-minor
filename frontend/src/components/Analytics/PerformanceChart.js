@@ -1,4 +1,4 @@
-// ========== src/components/Analytics/PerformanceChart.js (FIXED) ==========
+// ========== src/components/Analytics/PerformanceChart.js ==========
 import React, { useState, useEffect } from 'react';
 import api from '../../api/axios';
 import {
@@ -75,7 +75,7 @@ function PerformanceChart() {
       { name: 'In Progress', value: statusCount.in_progress, color: '#f39c12' },
       { name: 'In Review', value: statusCount.in_review, color: '#9b59b6' },
       { name: 'Done', value: statusCount.done, color: '#2ecc71' },
-    ].filter(item => item.value > 0); // Only show non-zero values
+    ];
   };
 
   // Task Priority Distribution
@@ -96,31 +96,7 @@ function PerformanceChart() {
       { name: 'Medium', value: priorityCount.medium, color: '#f39c12' },
       { name: 'High', value: priorityCount.high, color: '#e67e22' },
       { name: 'Critical', value: priorityCount.critical, color: '#e74c3c' },
-    ].filter(item => item.value > 0); // Only show non-zero values
-  };
-
-  // Custom label renderer for pie charts - prevents overlapping
-  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
-    if (percent < 0.05) return null; // Don't show labels for very small slices
-    
-    const RADIAN = Math.PI / 180;
-    const radius = outerRadius + 25; // Position label outside the pie
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-    return (
-      <text
-        x={x}
-        y={y}
-        fill="#333"
-        textAnchor={x > cx ? 'start' : 'end'}
-        dominantBaseline="central"
-        fontSize="13px"
-        fontWeight="500"
-      >
-        {`${(percent * 100).toFixed(0)}%`}
-      </text>
-    );
+    ];
   };
 
   // Sprint Progress Data
@@ -137,7 +113,7 @@ function PerformanceChart() {
         total: totalTasks,
         completionRate: completionRate.toFixed(1),
       };
-    }).slice(0, 6);
+    }).slice(0, 6); // Show last 6 sprints
   };
 
   // Team Performance Data
@@ -145,10 +121,10 @@ function PerformanceChart() {
     return users.map(user => {
       const userTasks = filteredTasks.filter(t => t.assigned_to?.id === user.id);
       const completedTasks = userTasks.filter(t => t.status === 'done').length;
-      const totalStoryPoints = userTasks.reduce((sum, t) => sum + (t.story_points || 0), 0);
+      const totalStoryPoints = userTasks.reduce((sum, t) => sum + t.story_points, 0);
       const completedStoryPoints = userTasks
         .filter(t => t.status === 'done')
-        .reduce((sum, t) => sum + (t.story_points || 0), 0);
+        .reduce((sum, t) => sum + t.story_points, 0);
 
       return {
         name: user.username,
@@ -157,7 +133,7 @@ function PerformanceChart() {
         storyPoints: totalStoryPoints,
         completedPoints: completedStoryPoints,
       };
-    }).filter(u => u.assigned > 0);
+    }).filter(u => u.assigned > 0); // Only show users with tasks
   };
 
   // Project Overview Data
@@ -287,82 +263,52 @@ function PerformanceChart() {
       {/* Charts based on selected view */}
       {chartType === 'overview' && (
         <div style={styles.chartsGrid}>
-          {/* Task Status Pie Chart - FIXED */}
+          {/* Task Status Pie Chart */}
           <div style={styles.chartCard}>
             <h3 style={styles.chartTitle}>Task Status Distribution</h3>
-            {taskStatusData.length > 0 ? (
-              <>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={taskStatusData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={renderCustomLabel}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {taskStatusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-                {/* Legend below chart */}
-                <div style={styles.legend}>
-                  {taskStatusData.map((item, index) => (
-                    <div key={index} style={styles.legendItem}>
-                      <div style={{...styles.legendColor, background: item.color}} />
-                      <span style={styles.legendText}>{item.name}: {item.value}</span>
-                    </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={taskStatusData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {taskStatusData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
-                </div>
-              </>
-            ) : (
-              <div style={styles.noData}>No task data available</div>
-            )}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
 
-          {/* Priority Distribution Pie Chart - FIXED */}
+          {/* Priority Distribution Pie Chart */}
           <div style={styles.chartCard}>
             <h3 style={styles.chartTitle}>Priority Distribution</h3>
-            {priorityData.length > 0 ? (
-              <>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={priorityData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={renderCustomLabel}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {priorityData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-                {/* Legend below chart */}
-                <div style={styles.legend}>
-                  {priorityData.map((item, index) => (
-                    <div key={index} style={styles.legendItem}>
-                      <div style={{...styles.legendColor, background: item.color}} />
-                      <span style={styles.legendText}>{item.name}: {item.value}</span>
-                    </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={priorityData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {priorityData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
-                </div>
-              </>
-            ) : (
-              <div style={styles.noData}>No priority data available</div>
-            )}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}
@@ -459,7 +405,7 @@ function PerformanceChart() {
                       {task.priority}
                     </span>
                   </td>
-                  <td style={styles.tableCell}>{task.story_points || 0}</td>
+                  <td style={styles.tableCell}>{task.story_points}</td>
                 </tr>
               ))}
             </tbody>
@@ -583,33 +529,6 @@ const styles = {
     fontWeight: 'bold',
     color: '#333',
     marginBottom: '20px',
-  },
-  legend: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '15px',
-    marginTop: '15px',
-    justifyContent: 'center',
-  },
-  legendItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  legendColor: {
-    width: '16px',
-    height: '16px',
-    borderRadius: '4px',
-  },
-  legendText: {
-    fontSize: '13px',
-    color: '#666',
-  },
-  noData: {
-    textAlign: 'center',
-    padding: '40px',
-    color: '#999',
-    fontSize: '14px',
   },
   tableCard: {
     background: 'white',

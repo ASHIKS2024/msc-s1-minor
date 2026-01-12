@@ -67,4 +67,4 @@ time-of-movement-into-done
 ## bugs:
 * create new project: end date may be before startdate
 * analytics: pi-charts: overlapping section titles
-* hello 
+* hello
