@@ -1,3 +1,4 @@
+# ========== backend/apps/tasks/serializers.py (FIXED) ==========
 from rest_framework import serializers
 from .models import Task, Comment
 from apps.users.serializers import UserSerializer
@@ -7,8 +8,8 @@ class CommentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Comment
-        fields = '__all__'
-        read_only_fields = ['user', 'created_at']
+        fields = ['id', 'task', 'user', 'text', 'created_at']
+        read_only_fields = ['id', 'user', 'task', 'created_at']  # Make task read-only since it's set in view
 
 class TaskSerializer(serializers.ModelSerializer):
     assigned_to = UserSerializer(read_only=True)

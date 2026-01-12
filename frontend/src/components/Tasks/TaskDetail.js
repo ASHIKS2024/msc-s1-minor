@@ -1,18 +1,29 @@
+// ========== src/components/Tasks/TaskDetail.js (UPDATED - Read-Only Support) ==========
 import React, { useState } from 'react';
 import api from '../../api/axios';
-import { X, User, Calendar, Flag, MessageCircle } from 'lucide-react';
+import { X, User, Calendar, Flag, MessageCircle, Eye } from 'lucide-react';
 
-function TaskDetail({ task, onClose, onUpdate, onRefresh }) {
+function TaskDetail({ task, onClose, onUpdate, onRefresh, isReadOnly = false }) {
   const [comment, setComment] = useState('');
   const [newStatus, setNewStatus] = useState(task.status);
 
   const handleStatusChange = async () => {
+    if (isReadOnly) {
+      alert('You have read-only access. Cannot modify tasks.');
+      return;
+    }
     await onUpdate(task.id, newStatus);
     onRefresh();
   };
 
   const handleAddComment = async (e) => {
     e.preventDefault();
+    
+    if (isReadOnly) {
+      alert('You have read-only access. Cannot add comments.');
+      return;
+    }
+    
     try {
       await api.post(`/tasks/${task.id}/add_comment/`, { text: comment });
       setComment('');
@@ -26,13 +37,28 @@ function TaskDetail({ task, onClose, onUpdate, onRefresh }) {
     <div style={styles.overlay}>
       <div style={styles.modal}>
         <div style={styles.header}>
-          <h2>{task.title}</h2>
+          <div style={styles.headerContent}>
+            <h2>{task.title}</h2>
+            {isReadOnly && (
+              <span style={styles.readOnlyBadge}>
+                <Eye size={16} />
+                Read-Only
+              </span>
+            )}
+          </div>
           <button onClick={onClose} style={styles.closeBtn}>
             <X size={24} />
           </button>
         </div>
         
         <div style={styles.content}>
+          {isReadOnly && (
+            <div style={styles.adminWarning}>
+              <span style={styles.warningIcon}>⚠️</span>
+              <span>You are viewing this task in read-only mode. You cannot make any changes.</span>
+            </div>
+          )}
+
           <div style={styles.section}>
             <h3 style={styles.sectionTitle}>Description</h3>
             <p style={styles.description}>{task.description}</p>
@@ -62,13 +88,14 @@ function TaskDetail({ task, onClose, onUpdate, onRefresh }) {
               value={newStatus}
               onChange={(e) => setNewStatus(e.target.value)}
               style={styles.select}
+              disabled={isReadOnly}
             >
               <option value="todo">To Do</option>
               <option value="in_progress">In Progress</option>
               <option value="in_review">In Review</option>
               <option value="done">Done</option>
             </select>
-            {newStatus !== task.status && (
+            {newStatus !== task.status && !isReadOnly && (
               <button onClick={handleStatusChange} style={styles.updateBtn}>
                 Update Status
               </button>
@@ -80,18 +107,23 @@ function TaskDetail({ task, onClose, onUpdate, onRefresh }) {
               <MessageCircle size={18} />
               Comments ({task.comments?.length || 0})
             </h3>
-            <form onSubmit={handleAddComment} style={styles.commentForm}>
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Add a comment..."
-                style={styles.textarea}
-                rows="3"
-              />
-              <button type="submit" style={styles.commentBtn}>
-                Add Comment
-              </button>
-            </form>
+            
+            {!isReadOnly && (
+              <form onSubmit={handleAddComment} style={styles.commentForm}>
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Add a comment..."
+                  style={styles.textarea}
+                  rows="3"
+                  disabled={isReadOnly}
+                />
+                <button type="submit" style={styles.commentBtn} disabled={isReadOnly}>
+                  Add Comment
+                </button>
+              </form>
+            )}
+            
             <div style={styles.comments}>
               {task.comments?.map((c) => (
                 <div key={c.id} style={styles.commentItem}>
@@ -140,6 +172,23 @@ const styles = {
     padding: '20px',
     borderBottom: '1px solid #e0e0e0',
   },
+  headerContent: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '15px',
+    flex: 1,
+  },
+  readOnlyBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '6px 12px',
+    background: '#95a5a6',
+    color: 'white',
+    borderRadius: '6px',
+    fontSize: '14px',
+    fontWeight: '500',
+  },
   closeBtn: {
     background: 'none',
     border: 'none',
@@ -148,6 +197,21 @@ const styles = {
   },
   content: {
     padding: '20px',
+  },
+  adminWarning: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '12px 15px',
+    background: '#fff3cd',
+    border: '1px solid #ffc107',
+    borderRadius: '6px',
+    marginBottom: '20px',
+    color: '#856404',
+    fontSize: '14px',
+  },
+  warningIcon: {
+    fontSize: '18px',
   },
   section: {
     marginBottom: '25px',

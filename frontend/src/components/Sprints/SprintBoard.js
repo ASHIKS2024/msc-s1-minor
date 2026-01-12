@@ -1,7 +1,8 @@
+// ========== src/components/Sprints/SprintBoard.js (UPDATED - Admin Read-Only) ==========
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../../api/axios';
-import { Plus } from 'lucide-react';
+import { Plus, Eye } from 'lucide-react';
 import TaskCard from '../Tasks/TaskCard';
 import TaskForm from '../Tasks/TaskForm';
 
@@ -10,6 +11,10 @@ function SprintBoard() {
   const [sprint, setSprint] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [showTaskForm, setShowTaskForm] = useState(false);
+  
+  // Get user info to check if admin
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isAdmin = user?.is_staff || false;
 
   useEffect(() => {
     fetchSprint();
@@ -40,6 +45,12 @@ function SprintBoard() {
   };
 
   const handleTaskUpdate = async (taskId, newStatus) => {
+    // Block admin from updating tasks
+    if (isAdmin) {
+      alert('Admins have read-only access to sprints. Cannot modify tasks.');
+      return;
+    }
+    
     try {
       await api.patch(`/tasks/${taskId}/`, { status: newStatus });
       fetchTasks();
@@ -64,13 +75,30 @@ function SprintBoard() {
           <h1 style={styles.title}>{sprint.name}</h1>
           <p style={styles.goal}>{sprint.goal}</p>
         </div>
-        <button onClick={() => setShowTaskForm(true)} style={styles.addButton}>
-          <Plus size={20} />
-          New Task
-        </button>
+        
+        {/* Only show New Task button for non-admin users */}
+        {!isAdmin ? (
+          <button onClick={() => setShowTaskForm(true)} style={styles.addButton}>
+            <Plus size={20} />
+            New Task
+          </button>
+        ) : (
+          <div style={styles.readOnlyBadge}>
+            <Eye size={20} />
+            <span>Read-Only View</span>
+          </div>
+        )}
       </div>
 
-      {showTaskForm && (
+      {/* Show info message for admin */}
+      {isAdmin && (
+        <div style={styles.adminInfo}>
+          <span style={styles.infoIcon}>ℹ️</span>
+          <span>You are viewing this sprint in read-only mode. You cannot create or modify tasks.</span>
+        </div>
+      )}
+
+      {showTaskForm && !isAdmin && (
         <TaskForm
           projectId={sprint.project}
           sprintId={id}
@@ -97,6 +125,7 @@ function SprintBoard() {
                     task={task}
                     onUpdate={handleTaskUpdate}
                     onRefresh={fetchTasks}
+                    isReadOnly={isAdmin}
                   />
                 ))}
             </div>
@@ -112,7 +141,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: '30px',
+    marginBottom: '20px',
   },
   title: {
     fontSize: '28px',
@@ -136,6 +165,32 @@ const styles = {
     fontSize: '16px',
     cursor: 'pointer',
     fontWeight: '500',
+  },
+  readOnlyBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '12px 24px',
+    background: '#95a5a6',
+    color: 'white',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: '500',
+  },
+  adminInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '15px 20px',
+    background: '#fff3cd',
+    border: '1px solid #ffc107',
+    borderRadius: '8px',
+    marginBottom: '20px',
+    color: '#856404',
+    fontSize: '15px',
+  },
+  infoIcon: {
+    fontSize: '20px',
   },
   board: {
     display: 'grid',

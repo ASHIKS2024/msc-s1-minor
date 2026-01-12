@@ -1,14 +1,16 @@
-// ========== src/App.js (COMPLETE WORKING VERSION) ==========
+// ========== src/App.js (FINAL UPDATE) ==========
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './components/Dashboard/Dashboard';
+import AdminDashboard from './components/Admin/AdminDashboard';
 import ProjectList from './components/Projects/ProjectList';
 import ProjectDetail from './components/Projects/ProjectDetail';
 import SprintBoard from './components/Sprints/SprintBoard';
 import SprintList from './components/Sprints/SprintList';
 import PerformanceChart from './components/Analytics/PerformanceChart';
+import UserManagement from './components/Admin/UserManagement';
 import Navbar from './components/Layout/Navbar';
 import Sidebar from './components/Layout/Sidebar';
 
@@ -62,6 +64,8 @@ function App() {
     );
   }
 
+  const isAdmin = user?.is_staff || false;
+
   return (
     <BrowserRouter>
       {!isAuthenticated ? (
@@ -82,13 +86,29 @@ function App() {
               backgroundColor: '#f5f5f5' 
             }}>
               <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/projects" element={<ProjectList />} />
-                <Route path="/projects/:id" element={<ProjectDetail />} />
-                <Route path="/sprints" element={<SprintList />} />
-                <Route path="/sprints/:id" element={<SprintBoard />} />
-                <Route path="/analytics" element={<PerformanceChart />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
+                {isAdmin ? (
+                  /* Admin Routes - Can view but not edit */
+                  <>
+                    <Route path="/" element={<AdminDashboard />} />
+                    <Route path="/admin/users" element={<UserManagement />} />
+                    <Route path="/projects" element={<ProjectList />} />
+                    <Route path="/projects/:id" element={<ProjectDetail readOnly={true} />} />
+                    <Route path="/sprints" element={<SprintList />} />
+                    <Route path="/sprints/:id" element={<SprintBoard readOnly={true} />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </>
+                ) : (
+                  /* Regular User Routes */
+                  <>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/projects" element={<ProjectList />} />
+                    <Route path="/projects/:id" element={<ProjectDetail />} />
+                    <Route path="/sprints" element={<SprintList />} />
+                    <Route path="/sprints/:id" element={<SprintBoard />} />
+                    <Route path="/analytics" element={<PerformanceChart />} />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </>
+                )}
               </Routes>
             </div>
           </div>

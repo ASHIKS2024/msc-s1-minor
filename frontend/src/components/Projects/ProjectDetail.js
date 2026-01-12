@@ -1,7 +1,8 @@
+// ========== src/components/Projects/ProjectDetail.js (UPDATED - Admin Read-Only) ==========
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../../api/axios';
-import { Plus, Calendar, Users, Activity } from 'lucide-react';
+import { Plus, Calendar, Users, Activity, Eye } from 'lucide-react';
 import SprintForm from '../Sprints/SprintForm';
 
 function ProjectDetail() {
@@ -9,6 +10,10 @@ function ProjectDetail() {
   const [project, setProject] = useState(null);
   const [sprints, setSprints] = useState([]);
   const [showSprintForm, setShowSprintForm] = useState(false);
+  
+  // Get user info to check if admin
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isAdmin = user?.is_staff || false;
 
   useEffect(() => {
     fetchProject();
@@ -38,7 +43,24 @@ function ProjectDetail() {
     fetchSprints();
   };
 
+  const handleNewSprintClick = () => {
+    if (isAdmin) {
+      alert('Admins have read-only access. Cannot create new sprints.');
+      return;
+    }
+    setShowSprintForm(true);
+  };
+
   if (!project) return <div>Loading...</div>;
+
+  const getSprintColor = (status) => {
+    const colors = {
+      planned: '#95a5a6',
+      active: '#2ecc71',
+      completed: '#3498db',
+    };
+    return colors[status] || '#95a5a6';
+  };
 
   return (
     <div>
@@ -47,13 +69,28 @@ function ProjectDetail() {
           <h1 style={styles.title}>{project.name}</h1>
           <p style={styles.description}>{project.description}</p>
         </div>
-        <button onClick={() => setShowSprintForm(true)} style={styles.addButton}>
-          <Plus size={20} />
-          New Sprint
-        </button>
+        
+        {!isAdmin ? (
+          <button onClick={handleNewSprintClick} style={styles.addButton}>
+            <Plus size={20} />
+            New Sprint
+          </button>
+        ) : (
+          <div style={styles.readOnlyBadge}>
+            <Eye size={20} />
+            <span>Read-Only</span>
+          </div>
+        )}
       </div>
 
-      {showSprintForm && (
+      {isAdmin && (
+        <div style={styles.adminInfo}>
+          <span style={styles.infoIcon}>ℹ️</span>
+          <span>You are viewing this project in read-only mode. You cannot create or modify sprints.</span>
+        </div>
+      )}
+
+      {showSprintForm && !isAdmin && (
         <SprintForm
           projectId={id}
           onClose={() => setShowSprintForm(false)}
@@ -88,9 +125,21 @@ function ProjectDetail() {
       <h2 style={styles.sectionTitle}>Sprints</h2>
       <div style={styles.sprintList}>
         {sprints.map((sprint) => (
-          <Link key={sprint.id} to={`/sprints/${sprint.id}`} style={styles.sprintCard}>
+          <Link 
+            key={sprint.id} 
+            to={`/sprints/${sprint.id}`} 
+            style={{
+              ...styles.sprintCard,
+              ...(isAdmin ? styles.readOnlySprintCard : {})
+            }}
+          >
             <div style={styles.sprintHeader}>
-              <h3 style={styles.sprintName}>{sprint.name}</h3>
+              <div style={styles.sprintTitleRow}>
+                <h3 style={styles.sprintName}>{sprint.name}</h3>
+                {isAdmin && (
+                  <Eye size={14} color="#95a5a6" style={{ marginLeft: '8px' }} />
+                )}
+              </div>
               <span style={{...styles.badge, background: getSprintColor(sprint.status)}}>
                 {sprint.status}
               </span>
@@ -106,21 +155,12 @@ function ProjectDetail() {
   );
 }
 
-const getSprintColor = (status) => {
-  const colors = {
-    planned: '#95a5a6',
-    active: '#2ecc71',
-    completed: '#3498db',
-  };
-  return colors[status] || '#95a5a6';
-};
-
 const styles = {
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: '30px',
+    marginBottom: '20px',
   },
   title: {
     fontSize: '32px',
@@ -145,6 +185,32 @@ const styles = {
     fontSize: '16px',
     cursor: 'pointer',
     fontWeight: '500',
+  },
+  readOnlyBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '12px 24px',
+    background: '#95a5a6',
+    color: 'white',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: '500',
+  },
+  adminInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '15px 20px',
+    background: '#fff3cd',
+    border: '1px solid #ffc107',
+    borderRadius: '8px',
+    marginBottom: '20px',
+    color: '#856404',
+    fontSize: '15px',
+  },
+  infoIcon: {
+    fontSize: '20px',
   },
   infoCards: {
     display: 'grid',
@@ -192,11 +258,19 @@ const styles = {
     transition: 'transform 0.2s',
     cursor: 'pointer',
   },
+  readOnlySprintCard: {
+    borderLeft: '4px solid #95a5a6',
+    opacity: 0.95,
+  },
   sprintHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: '10px',
+  },
+  sprintTitleRow: {
+    display: 'flex',
+    alignItems: 'center',
   },
   sprintName: {
     fontSize: '18px',

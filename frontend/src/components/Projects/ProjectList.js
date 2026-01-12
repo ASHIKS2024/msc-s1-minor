@@ -1,12 +1,17 @@
+// ========== src/components/Projects/ProjectList.js (UPDATED - Admin Read-Only) ==========
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../api/axios';
-import { Plus, Calendar, Users } from 'lucide-react';
+import { Plus, Calendar, Users, Eye } from 'lucide-react';
 import ProjectForm from './ProjectForm';
 
 function ProjectList() {
   const [projects, setProjects] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  
+  // Get user info to check if admin
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const isAdmin = user?.is_staff || false;
 
   useEffect(() => {
     fetchProjects();
@@ -26,25 +31,70 @@ function ProjectList() {
     fetchProjects();
   };
 
+  const handleNewProjectClick = () => {
+    if (isAdmin) {
+      alert('Admins have read-only access to projects. Cannot create new projects.');
+      return;
+    }
+    setShowForm(true);
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      planning: '#95a5a6',
+      active: '#2ecc71',
+      on_hold: '#f39c12',
+      completed: '#3498db',
+    };
+    return colors[status] || '#95a5a6';
+  };
+
   return (
     <div>
       <div style={styles.header}>
         <h1 style={styles.title}>Projects</h1>
-        <button onClick={() => setShowForm(true)} style={styles.addButton}>
-          <Plus size={20} />
-          New Project
-        </button>
+        
+        {!isAdmin ? (
+          <button onClick={handleNewProjectClick} style={styles.addButton}>
+            <Plus size={20} />
+            New Project
+          </button>
+        ) : (
+          <div style={styles.readOnlyBadge}>
+            <Eye size={20} />
+            <span>Read-Only Access</span>
+          </div>
+        )}
       </div>
 
-      {showForm && (
+      {isAdmin && (
+        <div style={styles.adminInfo}>
+          <span style={styles.infoIcon}>ℹ️</span>
+          <span>You are viewing projects in read-only mode. You cannot create or modify projects.</span>
+        </div>
+      )}
+
+      {showForm && !isAdmin && (
         <ProjectForm onClose={() => setShowForm(false)} onSuccess={handleProjectCreated} />
       )}
 
       <div style={styles.grid}>
         {projects.map((project) => (
-          <Link key={project.id} to={`/projects/${project.id}`} style={styles.card}>
+          <Link 
+            key={project.id} 
+            to={`/projects/${project.id}`} 
+            style={{
+              ...styles.card,
+              ...(isAdmin ? styles.readOnlyCard : {})
+            }}
+          >
             <div style={styles.cardHeader}>
-              <h3 style={styles.cardTitle}>{project.name}</h3>
+              <div style={styles.titleRow}>
+                <h3 style={styles.cardTitle}>{project.name}</h3>
+                {isAdmin && (
+                  <Eye size={16} color="#95a5a6" style={{ marginLeft: '8px' }} />
+                )}
+              </div>
               <span style={{...styles.statusBadge, background: getStatusColor(project.status)}}>
                 {project.status}
               </span>
@@ -82,7 +132,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '30px',
+    marginBottom: '20px',
   },
   title: {
     fontSize: '28px',
@@ -102,6 +152,32 @@ const styles = {
     cursor: 'pointer',
     fontWeight: '500',
   },
+  readOnlyBadge: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '12px 24px',
+    background: '#95a5a6',
+    color: 'white',
+    borderRadius: '8px',
+    fontSize: '16px',
+    fontWeight: '500',
+  },
+  adminInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '15px 20px',
+    background: '#fff3cd',
+    border: '1px solid #ffc107',
+    borderRadius: '8px',
+    marginBottom: '20px',
+    color: '#856404',
+    fontSize: '15px',
+  },
+  infoIcon: {
+    fontSize: '20px',
+  },
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
@@ -117,11 +193,19 @@ const styles = {
     transition: 'transform 0.2s',
     cursor: 'pointer',
   },
+  readOnlyCard: {
+    borderLeft: '4px solid #95a5a6',
+    opacity: 0.95,
+  },
   cardHeader: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: '15px',
+  },
+  titleRow: {
+    display: 'flex',
+    alignItems: 'center',
   },
   cardTitle: {
     fontSize: '20px',
